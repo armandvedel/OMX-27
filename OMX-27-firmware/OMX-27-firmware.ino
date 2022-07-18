@@ -81,7 +81,10 @@ void setup()
 	usbMIDI.setHandleNoteOn(OnNoteOn);
 	usbMIDI.setHandleControlChange(OnControlChange);
 	usbMIDI.setHandleSystemExclusive(OnSysEx);
-
+  usbMIDI.setHandleStart(OnContinue);//added JC
+  usbMIDI.setHandleContinue(OnContinue); //added JC
+  usbMIDI.setHandleStop(OnStop);  //added JC
+  
 	// clksTimer = 0; // TODO - didn't see this used anywhere
 	omxScreensaver.resetCounter();
 	// ssstep = 0;
@@ -347,10 +350,14 @@ void loop()
 			midiSettings.keyState[thisKey] = true;
 		}
 
-		if (e.down() && thisKey == 0 && encoderConfig.enc_edit)
+		if (e.down() && thisKey == 0)// added JC && encoderConfig.enc_edit)
 		{
-			// temp - save whenever the 0 key is pressed in encoder edit mode
-			saveToStorage();
+			// save when [saves patterns on f1,f2+aux]
+			if (seqPageParams.seqPages) 
+        {
+            seqPageParams.seqPages = false;
+            saveToStorage();
+        }
 			//	Serial.println("EEPROM saved");
 		}
 
@@ -496,6 +503,20 @@ void OnControlChange(byte channel, byte control, byte value)
 void OnSysEx(const uint8_t *data, uint16_t length, bool complete)
 {
 	sysEx->processIncomingSysex(data, length);
+}
+
+void OnContinue(void) { //added JC [for start stop messages from Logic]
+  if (sequencer.playing==0){
+     //Serial.println("start transport");
+     seqStart();
+  }
+}
+
+void OnStop(void) { //added JC
+  if (sequencer.playing==1){
+    sequencer.playing = 0;
+    seqStop(); 
+    }
 }
 
 void saveHeader()
